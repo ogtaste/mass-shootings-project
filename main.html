@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>Mass Shootings in DC Since 2014</title>
+  <meta name='viewport' content='width=device-width, initial-scale=1' />
+  <script src='https://api.mapbox.com/mapbox-gl-js/v2.4.1/mapbox-gl.js'></script>
+  <link href='https://api.mapbox.com/mapbox-gl-js/v2.4.1/mapbox-gl.css' rel='stylesheet' />
+
+  <div id='map'></div>
+  <div id='console'>
+    <h1>Mass Shootings in Washington, DC</h1>
+    <h3>2015 - 2021</h3>
+    <h3>__</h3>
+    <br>
+    <p>Analysis & Visualization: <a href='http://dcwitness.org'>D.C. Witness</a><br>Data Sources: <a
+        href='http://gunviolencearchive.org'>Gun Violence Archive</a>, D.C. Witness, Metropolitan Police Department
+      (MPD)</p>
+    <!-- <p>Visualization: <a href='http://twitter.com/mark_csv'>@mark_csv/Twitter</a></p> -->
+    <div class='session'>
+      <h2>Total Casualties (Fatal & Non-Fatal)</h2>
+      <div class='row colors'>
+      </div>
+      <div class='row labels'>
+        <div class='label'>4</div>
+        <div class='label'>5</div>
+        <div class='label'>6</div>
+        <div class='label'>7</div>
+        <div class='label'>8</div>
+        <div class='label'>9+</div>
+      </div>
+    </div>
+    <div class='session' id='sliderbar'>
+      <h2>Year: <label id='year_slider'>[--select a year--]</label></h2>
+      <input id='slider' class='row' type='range' min='2015' max='2021' step='1' value='2015' />
+    </div>
+
+  </div>
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Montserrat';
+    }
+
+    #map {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 100%;
+    }
+
+
+    h1 {
+      font-size: 20px;
+      line-height: 20px;
+    }
+
+    h2 {
+      font-size: 10px;
+      line-height: 20px;
+      margin-bottom: 0px;
+    }
+
+    h3 {
+      font-size: 15px;
+      line-height: 0px;
+      margin-bottom: 10px;
+    }
+
+    p {
+      font-size: 12px;
+      line-height: 14px;
+      margin-bottom: 10px
+    }
+
+    a {
+      text-decoration: none;
+      color: #2dc4b2;
+    }
+
+    #console {
+      position: absolute;
+      width: 240px;
+      margin: 10px;
+      padding: 10px 20px;
+      background-color: white;
+    }
+
+    .session {
+      margin-bottom: 20px;
+    }
+
+    .row {
+      height: 12px;
+      width: 100%;
+    }
+
+    .colors {
+      background: linear-gradient(to right, #e88aff, #c800fa, #e000ac, #ff2986);
+      margin-bottom: 5px;
+    }
+
+    .label {
+      width: 15%;
+      display: inline-block;
+      text-align: center;
+    }
+
+    .mapboxgl-popup {
+      max-width: 400px;
+      font: 10px/15px 'Montserrat', Arial, Helvetica, sans-serif;
+    }
+  </style>
+
+</head>
+
+</body>
+
+<script>
+  mapboxgl.accessToken = 'pk.eyJ1IjoiZGN3aXRuZXNzIiwiYSI6ImNrc3FjOXd6ZDBibmwycnBkZG8ydWNsN3MifQ.pbe_M50zXsEuEAf5Z-gOww';
+
+  const map = new mapboxgl.Map({
+    container: 'map', // container element id
+    style: 'mapbox://styles/markwitness/cktxw2b0z03pc17mrrziv0abd',
+    center: [-77.04, 38.907], // initial map center in [lon, lat]
+    zoom: 11.15
+  });
+
+  map.on('load', () => {
+
+    map.addLayer({
+
+      id: 'ms_main',
+      type: 'circle',
+      source: {
+        type: 'geojson',
+        data: 'https://gist.githubusercontent.com/ogtaste/2697e73c0a9863550e206c439ae1bca6/raw/2afbdd81941a92de289b32928d2f715b3add6a45/map.geojson',
+        // filter: ['==', ['number', ['get', 'year']], 2014]
+      },
+      paint: {
+        'circle-stroke-color': 'Black',
+        'circle-stroke-width': 1,
+
+        'circle-radius':
+          [
+            "interpolate",
+            ["linear"],
+            ["get", "total_casualties"],
+            4,
+            10,
+            5,
+            13,
+            6,
+            17,
+            7,
+            19,
+            8,
+            24,
+            9,
+            28,
+            22,
+            33
+          ],
+        'circle-color':
+          [
+            "interpolate",
+            ["linear"],
+            ["get", "total_casualties"],
+            4,
+            "#e88aff",
+            7,
+            "hsl(288, 100%, 49%)",
+            9,
+            "hsl(314, 100%, 44%)",
+            22,
+            "hsl(334, 100%, 58%)"
+          ],
+        'circle-opacity': 0.72
+      }
+
+    });
+
+    // An absolute ace in the hole on the first try, big data hours #GRINDING
+
+    map.addSource('dc-outline', {
+      'type': 'geojson',
+      'data': 'https://raw.githubusercontent.com/ogtaste/mass-shootings-project/main/Washington_DC_Boundary.json'
+    });
+
+    map.addLayer({
+      'id': 'boundary',
+      'type': 'line',
+      'source': 'dc-outline',
+      'paint': {
+        'line-color': '#483f2e',
+        'line-width': 3
+      }
+    })
+
+    // I LOVVVEEEE variables, dude. Can't get enough of them.
+
+
+    map.on('click', 'ms_main', function (e) {
+      var coordinates = e.features[0].geometry.coordinates.slice();
+      var location = e.features[0].properties.address;
+      var date = e.features[0].properties.date;
+      var killed = e.features[0].properties.deaths;
+      var numkilled = parseInt(e.features[0].properties.killed);
+      var injured = e.features[0].properties.all_victims;
+      var hoods = e.features[0].properties.neighborhoods;
+      var context = e.features[0].properties.context;
+      var total_casualties = e.features[0].properties.total_casualties;
+      var sus = e.features[0].properties.suspect;
+
+      // Ensure that if the map is zoomed out such that multiple
+      // copies of the feature are visible, the popup appears
+      // over the copy being pointed to.
+      while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
+        coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
+      }
+
+      new mapboxgl.Popup()
+        .setLngLat(coordinates)
+        .setHTML("<b>" + date + "</b>" + " | " + hoods + "<br>" + "Shot: " + injured + "<br>" + "Deaths: " + killed + "<br>" + context + "<br>" + sus)
+        .addTo(map);
+
+    });
+
+    // Change the cursor to a pointer when the mouse is over the places layer.
+    map.on('mouseenter', 'ms_main', function () {
+      map.getCanvas().style.cursor = 'pointer';
+    });
+
+    // Change it back to a pointer when it leaves.
+    map.on('mouseleave', 'ms_main', function () {
+      map.getCanvas().style.cursor = '';
+    });
+
+    document.getElementById('slider').addEventListener('input', ({
+      target }) => {
+      const year1 = parseInt(target.value);
+
+      // Updating the map
+      map.setFilter('ms_main', ['==', ['number', ['get', 'i_year']], year1]);
+      document.getElementById('year_slider').innerText = year1;
+    });
+
+
+
+
+  });
+</script>
+
+
+
+
+
+</html>
